@@ -1,10 +1,15 @@
 # Arquivo
 
-link = "https://docs.google.com/spreadsheets/d/1tUlsvg-3hSZYzd9sEalP1yJRzVPy3HgW/edit?usp=sharing&ouid=110715393029846460990&rtpof=true&sd=true"
-link = "https://docs.google.com/spreadsheets/d/1tUlsvg-3hSZYzd9sEalP1yJRzVPy3HgW/edit?usp=sharing&ouid=110715393029846460990&rtpof=true&sd=true"
+
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+#import plotly.express as px
+import altair as alt
+
+
+#plotly==4.14.3
+#numpy==1.25.2
+#pandas<1.2.0
 
 # Function to load Excel file from GitHub
 def load_excel_from_github(url):
@@ -119,30 +124,71 @@ if file_url:
 
             # Filter data based on selected categories
             filtered_data = data[data['categoria'].isin(selected_categories)]
-
+            
             monthly_expenses = filtered_data.groupby('Mes')['valor'].sum().reset_index()
-            bar_fig = px.bar(monthly_expenses, x='Mes', y='valor', title="Custos do mês")
-            # Add labels on top of each bar
-            bar_fig.update_traces(texttemplate='%{y:.2f}', textposition='outside')
 
-            st.plotly_chart(bar_fig)
+            chart = alt.Chart(monthly_expenses).mark_bar().encode(
+                x="Mes",
+                y="valor"
+            ).properties(
+                title={
+                    "text": ['tittle'],
+                }
+            )
+            # Show the chart
+            st.altair_chart(chart, use_container_width=True)
+
+            # Grafico de barras
+
+
+            # bar_fig = px.bar(monthly_expenses, x='Mes', y='valor', title="Custos do mês")
+            # # Add labels on top of each bar
+            # bar_fig.update_traces(texttemplate='%{y:.2f}', textposition='outside')
+
+            # st.plotly_chart(bar_fig)
 
              # Create a line plot for each category's total per month
             category_monthly_expenses = filtered_data.groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
 
-            line_fig = px.line(
-                category_monthly_expenses,
-                x='Mes',
-                y='valor',
-                color='categoria',
-                title="Monthly Totals by Category"
+            # selection = alt.selection_multi(fields=['Origin'])
+            # color = alt.condition(
+            #     selection,
+            #     alt.Color('Origin:N').legend(None),
+            #     alt.value('lightgray')
+            # )
+
+            linha = alt.Chart(category_monthly_expenses).mark_line(point=True).encode(
+                x="Mes",
+                y="valor",
+                color=alt.Color("categoria")
+            ).properties(
+                title="teste",
+                width=600,
+                height=400,
             )
 
-            # Add value labels on top of each point in the line plot
-            line_fig.update_traces(texttemplate='%{y:.2f}', textposition='top right')
+            # legend = alt.Chart(category_monthly_expenses).mark_point().encode(
+            #     alt.Y('categoria:N').axis(orient='right'),
+            #     color=color
+            # ).add_selection(
+            #     selection
+            # )
+            st.altair_chart(linha, use_container_width=True)
+            
 
-            # Show the line chart
-            st.plotly_chart(line_fig)
+            # line_fig = px.line(
+            #     category_monthly_expenses,
+            #     x='Mes',
+            #     y='valor',
+            #     color='categoria',
+            #     title="Monthly Totals by Category"
+            # )
+
+            # # Add value labels on top of each point in the line plot
+            # line_fig.update_traces(texttemplate='%{y:.2f}', textposition='top right')
+
+            # # Show the line chart
+            # st.plotly_chart(line_fig)
 
         # Category-wise spending breakdown
         if analysis_type == "Category Breakdown":
@@ -174,23 +220,17 @@ if file_url:
             # Concatenate large categories with the "Other" category
             final_expenses = pd.concat([large_categories, other_expenses])
 
-            # Create pie chart with percentage and total value
-            pie_fig = px.pie(
-                final_expenses,
-                names='categoria',
-                values='valor',
-                title=f"Category Breakdown for {selected_month}",
-                hole=0  # Optional: Creates a donut chart
-            )
-
-            # Add the total value to the pie chart labels
-            # pie_fig.update_traces(
-            #     textinfo='label+percent+value',
-            #     hovertemplate='%{label}<br>R$%{value}()%{percent}%'
+            # # Create pie chart with percentage and total value
+            # pie_fig = px.pie(
+            #     final_expenses,
+            #     names='categoria',
+            #     values='valor',
+            #     title=f"Category Breakdown for {selected_month}",
+            #     hole=0  # Optional: Creates a donut chart
             # )
 
-            # Show the pie chart
-            st.plotly_chart(pie_fig)
+            # # Show the pie chart
+            # st.plotly_chart(pie_fig)
 
         # Spending trend over time (line chart)
         if analysis_type == "Spending Trend":
