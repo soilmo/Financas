@@ -16,4 +16,5 @@ urllib3==2.2.3
 streamlit==1.4.0
 protobuf~=3.19.0
 altair==4.0
+pandas<1.2.0
 plotly==4.14.3
