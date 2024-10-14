@@ -218,7 +218,6 @@ pylint @ file:///C:/ci/pylint_1598617153160/work
 Pympler==1.0.1
 PyMsgBox==1.0.9
 PyNaCl @ file:///C:/ci/pynacl_1595000047588/work
-pyodbc===4.0.0-unsupported
 pyOpenSSL @ file:///tmp/build/80754af9/pyopenssl_1594392929924/work
 pyparsing==2.4.7
 PyPDF2==1.26.0
