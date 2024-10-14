@@ -12,3 +12,4 @@ soupsieve==2.6
 tqdm==4.66.5
 urllib3==2.2.3
 streamlit==1.4.0
+protobuf~=3.19.0
