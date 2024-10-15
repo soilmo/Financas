@@ -209,15 +209,14 @@ if file_url:
                 color=alt.Color("categoria:N", legend=None)
             )
 
-            
+            text_pie = pie.mark_text(radius=140, size=20).encode(text="valor:Q")
+
             selection = alt.selection_multi(fields=['categoria'], bind='legend')
             pie = pie.add_selection(
                 selection
             ).encode(
                 opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
             )
-
-            text_pie = pie.mark_text(radius=140, size=20).encode(text="valor:Q")
 
             st.altair_chart((pie + text_pie).interactive(), use_container_width=True)
 
