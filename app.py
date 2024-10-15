@@ -204,13 +204,12 @@ if file_url:
             # Concatenate large categories with the "Other" category
             final_expenses = pd.concat([large_categories, other_expenses])
 
-            base = alt.Chart(final_expenses).mark_arc(outerRadius=120).encode(
+            pie = alt.Chart(final_expenses).mark_arc(outerRadius=120).encode(
                 theta="valor:Q",
                 color=alt.Color("categoria:N", legend=None)
             )
 
-            pie = base
-
+            
             selection = alt.selection_multi(fields=['categoria'], bind='legend')
             pie = pie.add_selection(
                 selection
@@ -218,7 +217,7 @@ if file_url:
                 opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
             )
 
-            text_pie = base.mark_text(radius=140, size=20).encode(text="valor:Q")
+            text_pie = pie.mark_text(radius=140, size=20).encode(text="valor:Q")
 
             st.altair_chart((pie + text_pie).interactive(), use_container_width=True)
 
