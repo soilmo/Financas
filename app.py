@@ -6,11 +6,6 @@ import pandas as pd
 #import plotly.express as px
 import altair as alt
 
-
-#plotly==4.14.3
-#numpy==1.25.2
-#pandas<1.2.0
-
 # Function to load Excel file from GitHub
 def load_excel_from_github(url):
     df = pd.read_excel(url, engine='openpyxl')
@@ -122,73 +117,62 @@ if file_url:
                 default=all_categories  # Default: show all categories
             )
 
+            if len(selected_categories) == 0:
+                selected_categories = all_categories
+
             # Filter data based on selected categories
             filtered_data = data[data['categoria'].isin(selected_categories)]
             
             monthly_expenses = filtered_data.groupby('Mes')['valor'].sum().reset_index()
 
-            chart = alt.Chart(monthly_expenses).mark_bar().encode(
+
+            # Grafico de barras
+            bars = alt.Chart(monthly_expenses).mark_bar().encode(
                 x="Mes",
                 y="valor"
             ).properties(
-                title={
-                    "text": ['tittle'],
-                }
-            )
-            # Show the chart
-            st.altair_chart(chart, use_container_width=True)
-
-            # Grafico de barras
-
-
-            # bar_fig = px.bar(monthly_expenses, x='Mes', y='valor', title="Custos do mês")
-            # # Add labels on top of each bar
-            # bar_fig.update_traces(texttemplate='%{y:.2f}', textposition='outside')
-
-            # st.plotly_chart(bar_fig)
-
-             # Create a line plot for each category's total per month
-            category_monthly_expenses = filtered_data.groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
-
-            # selection = alt.selection_multi(fields=['Origin'])
-            # color = alt.condition(
-            #     selection,
-            #     alt.Color('Origin:N').legend(None),
-            #     alt.value('lightgray')
-            # )
-
-            linha = alt.Chart(category_monthly_expenses).mark_line(point=True).encode(
-                x="Mes",
-                y="valor",
-                color=alt.Color("categoria")
-            ).properties(
-                title="teste",
                 width=600,
                 height=400,
             )
 
-            # legend = alt.Chart(category_monthly_expenses).mark_point().encode(
-            #     alt.Y('categoria:N').axis(orient='right'),
-            #     color=color
-            # ).add_selection(
-            #     selection
-            # )
-            st.altair_chart(linha, use_container_width=True)
+            text = bars.mark_text(
+                align='center',
+                baseline='top',
+                color = 'white'
+            ).encode(
+                text='valor:Q'
+            )
+
+            # Show the chart
+            st.altair_chart(bars+text, use_container_width=True)
+
+             # Create a line plot for each category's total per month
+            category_monthly_expenses = filtered_data.groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
             
+            linha = alt.Chart(category_monthly_expenses).mark_line(point=True).encode(
+                x="Mes",
+                y="valor",
+                color=alt.Color("categoria"),
+            )
+            
+            text_linha = linha.mark_text(
+                align='center',
+                baseline='top',
+                color = 'white'
+            ).encode(
+                text='valor:Q'
+            )
 
-            # line_fig = px.line(
-            #     category_monthly_expenses,
-            #     x='Mes',
-            #     y='valor',
-            #     color='categoria',
-            #     title="Monthly Totals by Category"
-            # )
+            selection = alt.selection_multi(fields=['categoria'], bind='legend')
 
-            # # Add value labels on top of each point in the line plot
-            # line_fig.update_traces(texttemplate='%{y:.2f}', textposition='top right')
+            linha = linha.add_selection(
+                selection
+            ).encode(
+                opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
+            )
+            
+            st.altair_chart((linha + text_linha).interactive(), use_container_width=True)
 
-            # # Show the line chart
-            # st.plotly_chart(line_fig)
 
         # Category-wise spending breakdown
         if analysis_type == "Category Breakdown":
@@ -219,6 +203,24 @@ if file_url:
 
             # Concatenate large categories with the "Other" category
             final_expenses = pd.concat([large_categories, other_expenses])
+
+            base = alt.Chart(final_expenses).mark_arc(outerRadius=120).encode(
+                theta="valor:Q",
+                color=alt.Color("categoria:N", legend=None)
+            )
+
+            pie = base
+
+            selection = alt.selection_multi(fields=['categoria'], bind='legend')
+            pie = pie.add_selection(
+                selection
+            ).encode(
+                opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
+            )
+
+            text_pie = base.mark_text(radius=140, size=20).encode(text="valor:Q")
+
+            st.altair_chart((pie + text_pie).interactive(), use_container_width=True)
 
             # # Create pie chart with percentage and total value
             # pie_fig = px.pie(
