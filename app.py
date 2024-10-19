@@ -16,7 +16,6 @@ def calculate_monthly_change(df):
     monthly_totals = df.groupby(['Mes', 'categoria'])['valor'].sum().unstack().fillna(0)
     previous_month = monthly_totals.shift(1)
     changes = monthly_totals - previous_month
-    print(changes)
     return changes
 
 # Function to calculate percentage change from previous month
@@ -25,6 +24,23 @@ def calculate_percentage_change(current_value, previous_value):
         return float('inf') if current_value > 0 else 0
     else:
         return abs(int(round((current_value - previous_value) / previous_value * 100 + 100, 0)))
+
+# Dict mes numero - nome
+
+dict_numero_nome_mes = {
+    '01':'Janeiro',
+    '02':'Fevereiro',
+    '03':'Março',
+    '04':'Abril',
+    '05':'Maio',
+    '06':'Junho',
+    '07':'Julho',
+    '08':'Agosto',
+    '09':'Setembro',
+    '10':'Outubro',
+    '11':'Novembro',
+    '12':'Dezembro'
+}
 
 # Sidebar for GitHub file URL input and macro analysis options
 st.sidebar.title("Acompanhamento de custos")
@@ -40,7 +56,8 @@ try:
     # Fatura
     data = load_excel_from_github(file_url_fatura)
     data['Mes'] = data['data_pagamento'].dt.strftime('%Y-%m')
-    unique_months = data['Mes'].unique()
+    unique_months = list(data['Mes'].unique())
+    unique_months.reverse()
     all_categories = data['categoria'].unique()
 
     # Extrato
@@ -61,11 +78,18 @@ try:
         ["Resumo", "Visão mensal", "Visão por categoria"]
     )
 
+
     # Show basic data Resumo
     if analysis_type == "Resumo":
 
-        latest_month = unique_months[-1]
-        previous_month = unique_months[-2]
+        # Sidebar options for different types of analysis
+        mes_referencia = st.selectbox(
+            "Escolha o mês",
+            list(unique_months)
+        )
+
+        latest_month = mes_referencia
+        previous_month = unique_months[unique_months.index(latest_month)+1]
 
         changes = calculate_monthly_change(data)
 
@@ -130,28 +154,63 @@ try:
         col3.metric("Débito", total_0_deb,  f'{var_pct_deb}%')
         col4.metric("Gasto diário médio", total_0_dia,  f'{var_pct_dia}%')
 
-        # Split layout into two columns for Increases and Reductions
-        col1, col2 = st.columns(2)
 
-        # Show largest increases in the left column
-        with col1:
-            st.subheader(f"Top aumentos de {previous_month} a {latest_month}")
-            st.dataframe(increase_df)
+        st.subheader(f"Gastos por categoria")
+        # Tabela com catgeorias e graficos do mês
+
+        df_mes = data[data['Mes']==mes_referencia].groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
+        df_mes = df_mes[['categoria','valor']]
+        increases = increases.reset_index()
+        df_mes = df_mes.merge(increases, how = 'outer')
+        df_mes.set_index("categoria", inplace = True)
+        df_mes.fillna(0, inplace = True)
+        df_mes = df_mes[df_mes['valor']!=0]
+        df_mes.columns = ['valor','variação']
+
+        st.dataframe(df_mes.style.format({
+                'valor': 'R$ {:,.2f}',  # Currency format for price
+                'variação': 'R$ {:,.2f}'  # Format quantity as an integer
+            }), 700, 400)
 
         # Show largest reductions in the right column
-        with col2:
-            st.subheader(f"Top reduções de {previous_month} a {latest_month}")
-            st.dataframe(reduction_df)
         
+        st.subheader(f"Grafico")
+        df_mes = data[data['Mes']==mes_referencia].groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
+        df_mes.sort_values("valor", inplace = True)
+        
+        # Grafico de barras
+        bars = alt.Chart(df_mes).mark_bar(size = 20).encode(
+            x="categoria",
+            y="valor",
+        ).properties(
+            width=700,
+            height=400,
+        )
+
+        text = bars.mark_text(
+            align='center',
+            baseline='top',
+            color = 'white'
+        ).encode(
+            text='valor:Q'
+        )
+
+        # Show the chart
+        st.altair_chart(bars+text, use_container_width=True)
+        
+
+        
+
+            
         
     # Visão mensal bar chart
     if analysis_type == "Visão mensal":
 
-        st.title("Monthly Expense Breakdown")
+        st.title("Despesas mensais por categoria")
         
         # Create a multiselect widget to filter by category
         selected_categories = st.multiselect(
-            "Select categories to include",
+            "Escolha as categorias",
             options=all_categories,
             default=all_categories  # Default: show all categories
         )
@@ -165,9 +224,9 @@ try:
         monthly_expenses = filtered_data.groupby('Mes')['valor'].sum().reset_index()
 
         # Grafico de barras
-        bars = alt.Chart(monthly_expenses).mark_bar().encode(
-            x="Mes",
-            y="valor"
+        bars = alt.Chart(monthly_expenses).mark_bar(size = 40).encode(
+            x="Mes:T",
+            y="valor",
         ).properties(
             width=600,
             height=400,
@@ -184,11 +243,11 @@ try:
         # Show the chart
         st.altair_chart(bars+text, use_container_width=True)
 
-            # Create a line plot for each category's total per month
+        # Create a line plot for each category's total per month
         category_monthly_expenses = filtered_data.groupby(['Mes', 'categoria'])['valor'].sum().reset_index()
         
         linha = alt.Chart(category_monthly_expenses).mark_line(point=True).encode(
-            x="Mes",
+            x="Mes:T",
             y="valor",
             color=alt.Color("categoria"),
         )
